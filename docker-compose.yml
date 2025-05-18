@@ -1,0 +1,15 @@
+services:
+  gocourse_web:
+    platform: linux/amd64
+    container_name: gocourse_web
+    build:
+      context: ./.dockers/mysql
+      dockerfile: Dockerfile
+    image: gocourse_web
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: gocourse_web
+    ports:
+      - "3320:3306"
+    volumes:
+      - ./dockers/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
