@@ -1,7 +1,7 @@
 package user
 
 import (
-	"github.com/google/uuid"
+	"fmt"
 	"log"
 
 	"gorm.io/gorm"
@@ -9,10 +9,11 @@ import (
 
 type Repository interface {
 	Create(user *User) error
-	GetAll() ([]User, error)
+	GetAll(filters Filters, limit, offset int) ([]User, error)
 	GetByID(id string) (*User, error)
 	Delete(id string) error
 	Update(id string, firstName *string, lastName *string, email *string, phone, password *string) error
+	Count(filters Filters) (int, error)
 }
 
 type repo struct {
@@ -28,7 +29,6 @@ func NewRepo(log *log.Logger, db *gorm.DB) Repository {
 }
 
 func (r *repo) Create(user *User) error {
-	user.ID = uuid.New().String()
 
 	if err := r.db.Create(user).Error; err != nil {
 		r.log.Println(err)
@@ -38,13 +38,17 @@ func (r *repo) Create(user *User) error {
 	return nil
 }
 
-func (r *repo) GetAll() ([]User, error) {
-	var users []User
-	result := r.db.Model(&users).Order("created_at desc").Find(&users)
+func (r *repo) GetAll(filters Filters, limit, offset int) ([]User, error) {
+	var user []User
+	tx := r.db.Model(&user)
+	tx = applyFilters(tx, filters)
+	tx = tx.Limit(limit).Offset(offset)
+	tx = applyFilters(tx, filters)
+	result := tx.Order("created_at desc").Find(&user)
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	return users, nil
+	return user, nil
 
 }
 
@@ -88,4 +92,26 @@ func (r *repo) Update(id string, firstName *string, lastName *string, email *str
 		return result.Error
 	}
 	return nil
+}
+
+func applyFilters(tx *gorm.DB, filters Filters) *gorm.DB {
+	if filters.FirstName != "" {
+		// Usamos LOWER tanto en la columna como en el valor para asegurar una búsqueda case-insensitive
+		tx = tx.Where("LOWER(first_name) LIKE LOWER(?)", fmt.Sprintf("%%%s%%", filters.FirstName))
+	}
+	if filters.LastName != "" {
+		tx = tx.Where("LOWER(last_name) LIKE LOWER(?)", fmt.Sprintf("%%%s%%", filters.LastName))
+	}
+	return tx
+}
+
+func (r *repo) Count(filters Filters) (int, error) {
+	var count int64
+	tx := r.db.Model(&User{})
+	tx = applyFilters(tx, filters)
+	result := tx.Count(&count)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return int(count), nil
 }
