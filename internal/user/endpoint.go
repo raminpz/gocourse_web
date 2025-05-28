@@ -116,7 +116,7 @@ func makeCreateEndpoint(s Service) Controller {
 			return
 		}
 
-		user, err := s.Create(req.FirstName, req.LastName, req.Email, req.Phone, req.Password)
+		user, err := s.Create(req.FirstName, req.LastName, req.Email, req.Phone)
 		if err != nil {
 			w.WriteHeader(400)
 			json.NewEncoder(w).Encode(&Response{Status: 400, Err: err.Error()})
@@ -200,7 +200,7 @@ func makeUpdateEndpoint(s Service) Controller {
 		path := mux.Vars(r)
 		id := path["id"]
 
-		if err := s.Update(id, req.FirstName, req.LastName, req.Email, req.Phone, req.Password); err != nil {
+		if err := s.Update(id, req.FirstName, req.LastName, req.Email, req.Phone); err != nil {
 			w.WriteHeader(404)
 			json.NewEncoder(w).Encode(&Response{Status: 404, Err: "user does not exist"})
 			return

@@ -2,17 +2,18 @@ package user
 
 import (
 	"fmt"
+	"github.com/raminpz/gocourse_web/internal/domain"
 	"log"
 
 	"gorm.io/gorm"
 )
 
 type Repository interface {
-	Create(user *User) error
-	GetAll(filters Filters, limit, offset int) ([]User, error)
-	GetByID(id string) (*User, error)
+	Create(user *domain.User) error
+	GetAll(filters Filters, limit, offset int) ([]domain.User, error)
+	GetByID(id string) (*domain.User, error)
 	Delete(id string) error
-	Update(id string, firstName *string, lastName *string, email *string, phone, password *string) error
+	Update(id string, firstName *string, lastName *string, email *string, phone *string) error
 	Count(filters Filters) (int, error)
 }
 
@@ -28,7 +29,7 @@ func NewRepo(log *log.Logger, db *gorm.DB) Repository {
 	}
 }
 
-func (r *repo) Create(user *User) error {
+func (r *repo) Create(user *domain.User) error {
 
 	if err := r.db.Create(user).Error; err != nil {
 		r.log.Println(err)
@@ -38,8 +39,8 @@ func (r *repo) Create(user *User) error {
 	return nil
 }
 
-func (r *repo) GetAll(filters Filters, limit, offset int) ([]User, error) {
-	var user []User
+func (r *repo) GetAll(filters Filters, limit, offset int) ([]domain.User, error) {
+	var user []domain.User
 	tx := r.db.Model(&user)
 	tx = applyFilters(tx, filters)
 	tx = tx.Limit(limit).Offset(offset)
@@ -52,8 +53,8 @@ func (r *repo) GetAll(filters Filters, limit, offset int) ([]User, error) {
 
 }
 
-func (r *repo) GetByID(id string) (*User, error) {
-	user := User{ID: id}
+func (r *repo) GetByID(id string) (*domain.User, error) {
+	user := domain.User{ID: id}
 	result := r.db.First(&user)
 	if result.Error != nil {
 		return nil, result.Error
@@ -62,7 +63,7 @@ func (r *repo) GetByID(id string) (*User, error) {
 }
 
 func (r *repo) Delete(id string) error {
-	user := User{ID: id}
+	user := domain.User{ID: id}
 	result := r.db.Delete(&user)
 	if result.Error != nil {
 		return result.Error
@@ -70,7 +71,7 @@ func (r *repo) Delete(id string) error {
 	return nil
 }
 
-func (r *repo) Update(id string, firstName *string, lastName *string, email *string, phone *string, password *string) error {
+func (r *repo) Update(id string, firstName *string, lastName *string, email *string, phone *string) error {
 	values := make(map[string]interface{})
 	if firstName != nil {
 		values["first_name"] = firstName
@@ -84,10 +85,7 @@ func (r *repo) Update(id string, firstName *string, lastName *string, email *str
 	if phone != nil {
 		values["phone"] = phone
 	}
-	if password != nil {
-		values["password"] = password
-	}
-	result := r.db.Model(&User{}).Where("id = ?", id).Updates(values)
+	result := r.db.Model(&domain.User{}).Where("id = ?", id).Updates(values)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -107,7 +105,7 @@ func applyFilters(tx *gorm.DB, filters Filters) *gorm.DB {
 
 func (r *repo) Count(filters Filters) (int, error) {
 	var count int64
-	tx := r.db.Model(&User{})
+	tx := r.db.Model(&domain.User{})
 	tx = applyFilters(tx, filters)
 	result := tx.Count(&count)
 	if result.Error != nil {
